@@ -9,11 +9,34 @@ head(adult)
 columns <- c("age", "workclass","fnlwgt","education","education-num","martial-status","occupation","relationship","race","sex","capital-gain","capital-loss","hours-per-week","native-country","income")
 colnames(adult) <- columns 
 
+
+adultD <- read.table("data/adult.data", head=FALSE, sep=",")
+adultDT <- read.table("data/adult.test", head=FALSE, sep=",")
+columns <- c("age", "workclass","fnlwgt","education","education-num","martial-status","occupation","relationship","race","sex","capital-gain","capital-loss","hours-per-week","native-country","income")
+colnames(adultDT) <- columns
+colnames(adultD) <- columns 
+levels(adultDT$income) <- c(" <=50K"," >50K")
+adult <-rbind(adultD, adultDT)
 summary(adult)
 
+summary ( subset(adult, ( adult$occupation==" ?"&adult$"native-country"==" ?"&adult$workclass==" ?" ) ) )
+indexToDelete<-as.numeric( rownames( subset(adult, ( adult$occupation==" ?"&adult$"native-country"==" ?"&
+                                                       adult$workclass==" ?" ) ) ) )
+#DELETED THE ROWS WITH 3 VARIABLES NULL
+adult<-adult[-indexToDelete,]
+
+summary(adult)
 #capital gain has errors?
 table(adult['capital-gain']==99999) # 159 equal to 99999 none bigger.
 # this could be  the biggest number in the census form.
+boxplot(adult$"capital-gain")
+nrow( subset(adult, adult$"capital-gain">99000 ))
+summary(adult)
+
+
+
+library(chemometrics)
+mahal<-Moutlier(adult, plot=TRUE)
 
 
 par(mfrow=c(1,1), las=1)
@@ -27,3 +50,11 @@ summary(workclass)
 subset(adultD, workclass="?"  )
 adultD$workclass=="?"
 ?subset
+subset(adult, adult$"native-country"==" ?")
+summary(adult)
+summary(adult$"native-country" )
+
+adult$income=="<=50K."
+levels(education)
+mahal<-Moutlier(adult[,c("age", "fnlwgt", "capital-gain", "capital-loss", "hours-per-week" )], plot=TRUE)
+Moutlier(adult[,c("age", "fnlwgt")] )
