@@ -1,8 +1,14 @@
 #After loading the file in the other document we continue with this file.
 unkValues <- adult[workclass==" ?",]
 names(adult)
-for(1:dim(unkValues))
 
+for(1:dim(unkValues))
+  
+income[unkValues,]
+
+slaves <-adult['hours-per-week'] >90
+slaves
+adult$"hours-per-week" ==90
 
 #> names(adult)
 #[1] "age"            "workclass"      "fnlwgt"         "education"      "education.num"  "martial-status"
