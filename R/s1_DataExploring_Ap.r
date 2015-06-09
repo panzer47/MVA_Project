@@ -45,6 +45,29 @@ for( i in 1:length(occupation)
   else
     var[i] = FALSE
 }
+
+############ Create new category for no workclass
+attach(adult)
+adult.p1 <- adult[1:2]
+adult.p2 <- adult[3:length(adult)]
+var = 0
+for( i in 1:length(workclass)
+)
+{
+  #print(i)
+  # very very very slow haha couldn't find another way :(
+  if(workclass[i] ==" ?")  
+    var[i] = TRUE
+  else
+    var[i] = FALSE
+}
+var <- as.factor(var)
+var <- as.data.frame(var)
+colnames(var) <- c("noWorkClass")
+adult <- cbind(adult.p1,var,adult.p2)
+###########################
+
+
 table(adult$occupation[i] ==" ?")
 var <- as.factor(var)
 var <- as.data.frame(var)
