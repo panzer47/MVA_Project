@@ -122,3 +122,12 @@ Moutlier(adult[,c("age", "fnlwgt")] )
 library(FactoMineR)
 par(mfrow=c(1,3))
 res.mca <- MCA(adult,quali.sup = 12,quanti.sup=3)
+str(adult)
+
+##### Save data for later use instead of running all the code
+saveRDS(adult, file="data/AdultPruned.Rda")
+###### CHECKPOINT 2. #########
+bar <- readRDS(file="data/AdultPruned.Rda")
+library(e1071)
+model <- svm(income~., data=adult)
+?svm
