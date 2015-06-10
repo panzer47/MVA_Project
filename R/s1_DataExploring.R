@@ -120,14 +120,43 @@ Moutlier(adult[,c("age", "fnlwgt")] )
 #########################################################################################################
 #############################################  MCA  #####################################################
 library(FactoMineR)
-par(mfrow=c(1,3))
-res.mca <- MCA(adult,quali.sup = 12,quanti.sup=3)
-str(adult)
 
+par(mfrow=c(2,2))
+res.mca <- MCA( bar,quali.sup = bar[,10])
+
+str(bar)
+bar<-bar[,-3]
+summary(bar)
+str(adult)
+mean<-mean(res$eig$eigenvalue)
+res$eig>mean
+#dimdesc(res, axes=1:26, proba=0.05)
+dimdesc(res)
 ##### Save data for later use instead of running all the code
 saveRDS(adult, file="data/AdultPruned.Rda")
 ###### CHECKPOINT 2. #########
 bar <- readRDS(file="data/AdultPruned.Rda")
-library(e1071)
-model <- svm(income~., data=adult)
-?svm
+summary(bar)
+bar<-bar[-3]
+bar<-bar[-10]
+summary(bar)
+###CHISQUARE, IS GOOD???!?!?!?
+chisq.test(bar$age, bar$race)
+
+x<-sample(nrow(bar),5000)
+mat<-as.matrix(bar[1:5000,])
+library(cluster)
+d<-dist(mat, method="gower")
+d<-daisy(bar[1:5000,], metric="gower")
+
+##LETS DO SOME CLUSTERING
+clustering<-hclust(d, method="ward.D2")
+plot(clustering)
+barplot(clustering$height[4940:5000])
+?plot
+library(rattle)
+centroids<-centers.hclust(d , clustering, nclust=2, use.median=FALSE)
+?kmeans
+kmeans<-kmeans(d, centroids)
+summary(kmeans)
+catdes(cbind( bar[1:5000,], as.factor(kmeans$cluster)) , num.var=10 )
