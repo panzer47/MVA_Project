@@ -193,7 +193,6 @@ res$eig>mean
 dimdesc(res)
 ##### Save data for later use instead of running all the code
 saveRDS(adult, file="data/AdultPruned.Rda")
-<<<<<<< HEAD
 ############################## CHECKPOINT 2. ##############################
 adult <- readRDS(file="data/AdultPruned.Rda")
 #########################################################################################################
@@ -227,7 +226,7 @@ for(i in 1:12){
 library(e1071)
 model <- svm(income~., data=adult)
 ?svm
-=======
+
 ###### CHECKPOINT 2. #########
 bar <- readRDS(file="data/AdultPruned.Rda")
 summary(bar)
@@ -254,4 +253,3 @@ centroids<-centers.hclust(d , clustering, nclust=2, use.median=FALSE)
 kmeans<-kmeans(d, centroids)
 summary(kmeans)
 catdes(cbind( bar[1:5000,], as.factor(kmeans$cluster)) , num.var=10 )
->>>>>>> e654691a0246ac9616b256b0d536a9989d5be4b5
