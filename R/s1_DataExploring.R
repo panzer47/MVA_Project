@@ -11,6 +11,7 @@
 library(nortest)
 library(MASS)
 require(npmc)
+library(discretization)
 #########################################################################################################
 ## step 1 to explore the data and work with outliers or null fields
 #########################################################################################################
@@ -56,6 +57,24 @@ levels(adult$native.country) <- c("noCountry","Cambodia","Canada","China"
                 ,"Portugal","Puerto-Rico","Scotland","South"                    
                 ,"Taiwan","Thailand","Trinadad&Tobago","United-States"            
                 ,"Vietnam","Yugoslavia")
+levels(adult$native.country) <- c("noCountry","Asia","United-States","Asia"              
+                                  ,"LatinAmerica","LatinAmerica","LatinAmerica","LatinAmerica"
+                                  ,"LatinAmerica","Europe","Europe","Europe"
+                                  ,"Europe","LatinAmerica","LatinAmerica","Europe"
+                                  ,"LatinAmerica","Asia","Europe","Asia"
+                                  ,"Asia","Europe","Europe","LatinAmerica"
+                                  ,"Asia","Asia","Mexico","LatinAmerica"                
+                                  ,"United-States","LatinAmerica","Asia","Europe"                   
+                                  ,"Europe","United-States","Europe","Asia"                    
+                                  ,"Asia","Asia","LatinAmerica","United-States"            
+                                  ,"Asia","Europe")
+
+chisq.test(adult$native.country,adult$income)
+
+chisq.test(adult$fnlwgt,adult$income)
+str(adult)
+levels(adult$native.country)
+table(adult$native.country,adult$income)
 #summary(adult$native.country)
 #########################################################################################################
 ########################################  Purge variables  ##############################################
@@ -67,10 +86,32 @@ adult<-adult[-indexToDelete,] # we end u with 48796 n size of Adult.
 
 ################################## Discretize continuous variables ##########################################
 
-adult$age <- (cut(adult$age, breaks = c(0, 25, 45, 65, Inf), labels = c("young","adult","senior","Old")))
-adult$hours.per.week <- cut(adult$hours.per.week, breaks = c(0, 25, 40, 60, Inf), 
-                            labels = c("underEmployed","normal","overworked","slaveLabor"))
-levels(adult$hours.per.week)
+str(adult)
+adult$age <- (cut(adult$age, breaks = c(15,25,35, 45,55, 65, Inf), 
+                  labels = c("young","youngAdult","adult","oldAdult","senior","retired")))
+table(adult$age)
+adult$hours.per.week <- cut(adult$hours.per.week, breaks = c(0, 20,30,40,50, 60, Inf), 
+                            labels = c("underEmployed","lowNormal","normal","highNormal","overworked","slaveLabor"))
+
+adult[[ "capital.gain"]] <- ordered(cut(adult[[ "capital.gain"]],
+                      c(-Inf,0,median(adult[[ "capital.gain"]][adult[[ "capital.gain"]]>0]),
+                      Inf)), labels = c("None", "Low", "High"))
+table(adult$capital.gain)
+
+adult[[ "capital.loss"]] <- ordered(cut(adult[[ "capital.loss"]],
+                      c(-Inf,0, median(adult[[ "capital.loss"]][adult[[ "capital.loss"]]>0]),
+                      Inf)), labels = c("None", "Low", "High"))
+table(adult$native.country,adult$income)
+
+ad.test(adult$fnlwgt)
+
+
+table(adult$capital.gain,adult$income)
+table(adult$capital.loss,adult$income)
+
+plot(adult$capital.gain)
+plot(adult$capital.loss)
+table(adult$hours.per.week)
 levels(adult$race)
 levels(adult$martial.status)
 #########################################################################################################
@@ -92,9 +133,13 @@ adult <- readRDS(file="data/AdultCleaned.Rda")
 #***************************************** PROBABLY USELESS *********************************************
 wilcox.test(y~A) 
 names(adult)
+table(adult$capital.gain,adult$income)
 aovEdu <- aov(education.num~education,data=adult)
 aovEdu
-
+lm1 <- lm(adult$education.num~adult$income)
+ad.test(adult$education.num)
+qqplot(adult$education.num,residuals(lm1))
+table(adult$education,adult$education.num)
 
 
 glm(adult$capital.gain~adult$income)
@@ -128,9 +173,12 @@ levels(adult$education)
 
 #########################################################################################################
 ####################################### Feature Selection ###############################################
+chisq<-chiSq(adult)
 
 
 ######################################## deleting native.country ########################################
+
+
 plot(adult$native.country)
 nCountTable<-table(adult$native.country)
 cbind(nCountTable,prop.table(nCountTable)*100) # we see that United States have almost 90% of the sample.
@@ -144,7 +192,13 @@ library(lmtest)
 dwtest(adult$capital.loss~adult$income)
 dwtest(adult$capital.loss~rownames(adu))
 adult = adult[-11] # delete capital.gain
-adult = adult[-5] # delete education.num
+
+
+
+######################################## deleting native.country ########################################
+table(adult$education,adult$education.num)
+adult = adult[-5] # delete education.num because is redundant, and will increase our bias
+
 
 
 
