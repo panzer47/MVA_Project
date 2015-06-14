@@ -18,11 +18,12 @@ library(discretization)
 adultD <- read.table("data/adult.data", head=FALSE, sep=",")
 adultDT <- read.table("data/adult.test", head=FALSE, sep=",")
 levels(adultDT$V15) <- c(" <=50K"," >50K")
-adult<-rbind(adultD, adultDT)# 48796 size
+adulto<-rbind(adultD, adultDT)# 48796 size
 #set the variable names.
 columns <- c("age", "workclass","fnlwgt","education","education.num","martial.status","occupation","relationship","race"
              ,"sex","capital.gain","capital.loss","hours.per.week","native.country","income")
-colnames(adult) <- columns 
+colnames(adulto) <- columns 
+str(adulto)
 summary(adult)
 
 ########################################### WORK CLASS #################################################
@@ -131,6 +132,7 @@ saveRDS(adult, file="data/AdultCleaned.Rda")
 adult <- readRDS(file="data/AdultCleaned.Rda")
 
 #***************************************** PROBABLY USELESS *********************************************
+
 wilcox.test(y~A) 
 names(adult)
 table(adult$capital.gain,adult$income)
@@ -198,10 +200,10 @@ adult = adult[-11] # delete capital.gain
 ######################################## deleting native.country ########################################
 table(adult$education,adult$education.num)
 adult = adult[-5] # delete education.num because is redundant, and will increase our bias
+adult = adult[-3]
 
-
-
-
+chisq.test(adult$education,adult$income,simulate.p.value = TRUE)
+?chisq.test
 ?Moutlier
 
 ?boxplot
@@ -228,6 +230,109 @@ Moutlier(adult[,c("age", "fnlwgt")] )
 
 
 t.test(income~native.country,data=adult)
+#########################################################################################################
+#######################################  Classification  ################################################
+library(rattle)
+#install.packages("rpart.plot")
+library(rpart.plot)
+library(pROC)
+library(caret)
+
+# i am using the original training data, since we erased some rows that have too many unknown values, 
+# the initial point of the Test data was changed, i detected where was the first one using adult.rowname(),
+# to show where the initial opint was.
+adult.tr <- adult[1:32534,]
+adult.tst <- adult[32535:nrow(adult),]
+part = rpart(income~ ., data=adult.tr, parms=list(split='gini'),  
+             control=rpart.control(cp=0.001, xval=10, maxdepth=15))
+
+print(part)
+printcp(part)
+plotcp(part)
+summary(part)
+
+par(mfrow=c(1,2)) # two plots on one page 
+rsq.rpart(part) # visualize cross-validation results    
+par(mfrow=c(1,1))
+
+plot(part, uniform=TRUE, 
+     main="Regression Tree for ADULT ")
+text(part, use.n=TRUE, all=TRUE, cex=.8)
+
+plot(part$cptable[,2],part$cptable[,3],type="l")
+lines(part$cptable[,2],part$cptable[,4],col="blue")
+legend("topright",c("R(T)training","R(T)cv"),col=c("black","blue"),lty=1)
+
+alfa <- part$cptable[which.min(part$cptable[,4]),1]
+alfa
+
+p1 <- prune(part,cp=alfa)
+p1
+print(p1)
+fancyRpartPlot(p1)
+print(p1)
+printcp(p1)
+plotcp(p1)
+plot(p1, uniform=TRUE,
+     main="Regression Tree for ADULT ")
+text(p1, use.n=TRUE, all=TRUE, cex=.8)
+
+
+probsTrain <- predict(p1,adult.tr, type = "class")
+
+incomPerc <- table(adult.tr$income)
+(ct<-table(probsTrain,adult.tr$income))
+
+perCT <- matrix(nrow=2,ncol=2)
+row.names(perCT)<- row.names(ct)
+colnames(perCT)<- colnames(ct)
+for(i in 1:2){
+  perCT[i,1] <- ct[i,1]/incomPerc[1]
+  perCT[i,2] <- ct[i,2]/incomPerc[2]
+}
+perCT
+
+(err <- 1.0 - (ct[1,1] + ct[2,2])/sum(ct))
+View(probsTrain)
+levels(adult.tr$income) <- c("<=50K",">50K")
+
+
+###### THIS DOEES NOT WORK IDK WHY
+
+roc <- roc(response = adult.tr$income,
+           predictor = probsTrain[,"1"],
+           levels = rev(levels(adult.tr$income)))
+plot(roc, print.thres = "best")
+
+View(probsTrain)# crashes R
+
+
+
+
+####### XXXX VALIDATION ########
+N <- nrow(adult.tr)
+K <- 10
+partition <- N%/%K
+set.seed(1234)
+rand <- runif(N)
+range <- rank(rand)
+block <- (range-1)%/% partition + 1
+block <-as.factor(block)
+summary(block)
+
+sum.error <- numeric(0)
+for(k in 1:K){
+  tree <- rpart(income ~ ., data=adult.tr[block!=k,], parms=list(split='gini'),  
+                control=rpart.control(cp=0.001, xval=10, maxdepth=15))
+  pred <- predict(tree,newdata=adult.tr[block==k,], type = "class")
+  ct<-table(adult.tr$income[block==k],pred)
+  err <- 1.0 - (ct[1,1] + ct[2,2])/sum(ct)
+  sum.error <- rbind(sum.error,err)
+}
+
+sum.error
+
+(mean.error <- mean(sum.error)) # 0.1659084   mean error
 
 
 #########################################################################################################
@@ -235,12 +340,13 @@ t.test(income~native.country,data=adult)
 library(FactoMineR)
 
 par(mfrow=c(2,2))
-res.mca <- MCA( bar,quali.sup = bar[,10])
+res.mca <- MCA( bar,quali.sup = bar[,13])
 
 str(bar)
 bar<-bar[,-3]
 summary(bar)
 str(adult)
+
 mean<-mean(res$eig$eigenvalue)
 res$eig>mean
 #dimdesc(res, axes=1:26, proba=0.05)
@@ -274,7 +380,7 @@ plot(adult$race)
 summary(adult$age)
 
 for(i in 1:12){
-  print(chisq.test(adult[i],adult$income)$p.value)
+  print(chisq.test(adult[i],adult$income,simulate.p.value = TRUE)$p.value)
 }
 
 library(e1071)
@@ -284,11 +390,10 @@ model <- svm(income~., data=adult)
 ###### CHECKPOINT 2. #########
 bar <- readRDS(file="data/AdultPruned.Rda")
 summary(bar)
-bar<-bar[-3]
-bar<-bar[-10]
-summary(bar)
 ###CHISQUARE, IS GOOD???!?!?!?
 chisq.test(bar$age, bar$race)
+
+
 
 x<-sample(nrow(bar),5000)
 mat<-as.matrix(bar[1:5000,])
